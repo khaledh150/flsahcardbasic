@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "Bash(dir:*)",
+      "Bash(git -C \"C:/Apps and Games Dev/soroban-test\" status)",
+      "Bash(git -C \"C:/Apps and Games Dev/soroban-test\" remote add origin https://github.com/khaledh150/flsahcardbasic.git)",
+      "Bash(git -C \"C:/Apps and Games Dev/soroban-test\" push -u origin main)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}
