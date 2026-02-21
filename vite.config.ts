@@ -4,8 +4,5 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   base: '/flsahcardbasic/',
-  build: {
-    outDir: 'docs',
-  },
   plugins: [react(), tailwindcss()],
 })
