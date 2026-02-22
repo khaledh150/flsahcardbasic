@@ -248,8 +248,10 @@ export default function WonderSorobanFlashCard() {
     if (!ttsEnabled || !isMounted.current) return;
     window.speechSynthesis.cancel();
     let spokenText = text;
+    let forceRate = null;
     if (text === "equals") {
       spokenText = "Equals";
+      forceRate = 1.0;
     } else if (type === "op") {
       const sign = text.startsWith("-") ? "Minus" : "Plus";
       const num = text.replace(/^[+-]/, "");
@@ -281,7 +283,7 @@ export default function WonderSorobanFlashCard() {
       if (speed >= 0.8) rate = 1.4;
       if (speed >= 1.5) rate = 1.1;
     }
-    utterance.rate = rate;
+    utterance.rate = forceRate !== null ? forceRate : rate;
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
     utterance.lang = "en-US";
@@ -365,7 +367,7 @@ export default function WonderSorobanFlashCard() {
   // Skip ready overlay — direct flash for practice auto-advance
   const startNextRoundDirectly = (targetIndex) => {
     clearTimers();
-    setPhase("playing");
+    window.speechSynthesis.cancel(); // clear any leftover speech from previous round
     setCurrentSetIndex(targetIndex);
     setCurrentNumberIndex(0);
     setActualAnswer(null);
@@ -377,7 +379,8 @@ export default function WonderSorobanFlashCard() {
       setActualAnswer(setData.answer);
     }
 
-    const id = setTimeout(() => startFlashing(targetIndex), 300);
+    // Small delay so cancel() fully clears before new speech starts
+    const id = setTimeout(() => startFlashing(targetIndex), 50);
     timeoutsRef.current.push(id);
   };
 
@@ -392,35 +395,52 @@ export default function WonderSorobanFlashCard() {
 
     let idx = 0;
 
+    function getPrefire(num) {
+      const digitCount = Math.abs(num).toString().length;
+      // Bigger numbers need more lead time — longer TTS text takes longer to start
+      if (digitCount >= 6) return 500;
+      if (digitCount >= 5) return 470;
+      if (digitCount >= 4) return 440;
+      if (digitCount >= 3) return 410;
+      if (digitCount >= 2) return 380;
+      return 350;
+    }
+
     function showAndSpeak() {
       if (!isMounted.current) return;
       if (idx >= nps) return;
 
       const num = numbers[idx];
+      const prefire = getPrefire(num);
 
-      // Cancel previous speech, show number, speak — all instant
-      setCurrentNumberIndex(idx);
-      playSound("tick");
+      // Speak early so dictation leads the visual flash
       speakFlash(num);
 
-      const digitCount = Math.abs(num).toString().length;
-      let delayMultiplier = 1.5;
-      if (digitCount >= 6) delayMultiplier = 3.5;
-      else if (digitCount >= 5) delayMultiplier = 3.0;
-      else if (digitCount >= 4) delayMultiplier = 2.5;
-      else if (digitCount >= 3) delayMultiplier = 2.0;
-      else if (digitCount >= 2) delayMultiplier = 1.8;
-      const delay = speed * 1000 * delayMultiplier;
+      const showId = setTimeout(() => {
+        if (!isMounted.current) return;
+        setCurrentNumberIndex(idx);
+        playSound("tick");
 
-      if (idx === nps - 1) {
-        flashTimerRef.current = setTimeout(() => {
-          if (!isMounted.current) return;
-          speakText("equals");
-          setPhase("input");
-        }, delay);
-      } else {
-        flashTimerRef.current = setTimeout(() => { idx++; showAndSpeak(); }, delay);
-      }
+        const digitCount = Math.abs(num).toString().length;
+        let delayMultiplier = 1.5;
+        if (digitCount >= 6) delayMultiplier = 3.5;
+        else if (digitCount >= 5) delayMultiplier = 3.0;
+        else if (digitCount >= 4) delayMultiplier = 2.5;
+        else if (digitCount >= 3) delayMultiplier = 2.0;
+        else if (digitCount >= 2) delayMultiplier = 1.8;
+        const delay = speed * 1000 * delayMultiplier;
+
+        if (idx === nps - 1) {
+          flashTimerRef.current = setTimeout(() => {
+            if (!isMounted.current) return;
+            speakText("equals");
+            setPhase("input");
+          }, delay);
+        } else {
+          flashTimerRef.current = setTimeout(() => { idx++; showAndSpeak(); }, delay);
+        }
+      }, prefire);
+      timeoutsRef.current.push(showId);
     }
     showAndSpeak();
   };
@@ -604,18 +624,24 @@ export default function WonderSorobanFlashCard() {
     // 1-3 digits: unchanged original sizes
     // 4-6 digits: progressively smaller to prevent overflow
     let numberSize, minusSize;
-    if (digits <= 3) {
-      numberSize = { fontSize: "clamp(10rem, min(45vw, 55vh), 35rem)" };
-      minusSize = { fontSize: "clamp(6rem, min(20vw, 25vh), 16rem)" };
+    if (digits <= 1) {
+      numberSize = { fontSize: "clamp(14rem, min(60vw, 70vh), 45rem)" };
+      minusSize = { fontSize: "clamp(8rem, min(28vw, 35vh), 22rem)" };
+    } else if (digits === 2) {
+      numberSize = { fontSize: "clamp(12rem, min(50vw, 60vh), 40rem)" };
+      minusSize = { fontSize: "clamp(7rem, min(24vw, 30vh), 20rem)" };
+    } else if (digits === 3) {
+      numberSize = { fontSize: "clamp(10rem, min(45vw, 55vh), 38rem)" };
+      minusSize = { fontSize: "clamp(6rem, min(20vw, 25vh), 18rem)" };
     } else if (digits === 4) {
-      numberSize = { fontSize: "clamp(6rem, min(32vw, 40vh), 28rem)" };
-      minusSize = { fontSize: "clamp(4rem, min(14vw, 18vh), 14rem)" };
+      numberSize = { fontSize: "clamp(7rem, min(36vw, 45vh), 32rem)" };
+      minusSize = { fontSize: "clamp(5rem, min(16vw, 20vh), 16rem)" };
     } else if (digits === 5) {
-      numberSize = { fontSize: "clamp(4.5rem, min(25vw, 32vh), 22rem)" };
-      minusSize = { fontSize: "clamp(3rem, min(11vw, 14vh), 11rem)" };
+      numberSize = { fontSize: "clamp(5.5rem, min(28vw, 36vh), 26rem)" };
+      minusSize = { fontSize: "clamp(3.5rem, min(13vw, 16vh), 13rem)" };
     } else {
-      numberSize = { fontSize: "clamp(3.5rem, min(20vw, 26vh), 18rem)" };
-      minusSize = { fontSize: "clamp(2.5rem, min(9vw, 11vh), 9rem)" };
+      numberSize = { fontSize: "clamp(4.5rem, min(23vw, 30vh), 22rem)" };
+      minusSize = { fontSize: "clamp(3rem, min(10vw, 13vh), 11rem)" };
     }
 
     return (
