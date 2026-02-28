@@ -139,7 +139,7 @@ export default function WonderSorobanFlashCard() {
   });
   const t = T[lang] || T.en;
 
-  const [speed, setSpeed] = useState(1.0);
+  const [speed, setSpeed] = useState(0.8);
   const [magnitude, setMagnitude] = useState("units");
   const [times, setTimes] = useState(10);
   const [totalRounds, setTotalRounds] = useState(5);
@@ -732,12 +732,12 @@ export default function WonderSorobanFlashCard() {
               {/* Speed */}
               <div className="bg-slate-50 p-3 rounded-2xl">
                 <label className="text-slate-400 font-bold text-xs uppercase ml-1 block mb-1">{t.speedSec}</label>
-                <div className="flex items-center justify-center">
-                  <input
-                    type="number" min={0.3} max={5} step={0.1}
-                    value={speed} onChange={(e) => setSpeed(Number(e.target.value))}
-                    className="w-full bg-transparent text-center text-2xl font-black text-slate-800 focus:outline-none"
-                  />
+                <div className="flex items-center justify-between">
+                  <button onClick={() => setSpeed(prev => Math.round(Math.max(0.1, prev - 0.1) * 10) / 10)}
+                    className="w-8 h-8 rounded-lg bg-white text-emerald-600 font-bold shadow-sm">−</button>
+                  <span className="text-2xl font-black text-slate-800">{speed.toFixed(1)}</span>
+                  <button onClick={() => setSpeed(prev => Math.round(Math.min(10.0, prev + 0.1) * 10) / 10)}
+                    className="w-8 h-8 rounded-lg bg-white text-emerald-600 font-bold shadow-sm">+</button>
                 </div>
               </div>
               {/* Rounds */}
